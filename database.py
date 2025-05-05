@@ -22,13 +22,20 @@ Base = declarative_base()
 class User(Base):
     __tablename__ = 'users'
     
-    id = Column(Integer, primary_key= True)
-    name = Column(String)
-    tg_id = Column(Integer)
+    user_id = Column(Integer, primary_key= True)
+    username = Column(String)
+    race = Column(String)
+    user_lvl = Column(Integer)
+    nickname = Column(String)
+    location = Column(String)
+    gold = Column(Integer)
 
-# Для SQLite (файл будет создан в текущей директории)
+
 engine = create_engine('sqlite:///rpg_bot.db')
 Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
+
+def create_all_table():
+    pass
 

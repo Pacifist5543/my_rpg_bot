@@ -1,22 +1,21 @@
 from telebot import TeleBot, types
 from threading import Thread
-import time
-import sqlalchemy
-import sqlite3
-import random
-import schedule
 from threading import Thread
-import time
-import config
-from database import Session, User
-
-
+from database import Session
 from database import create_all_table
-import models
+from database import User
+import random
+from sqlalchemy import update
 
+
+
+
+
+
+session = Session()
 create_all_table()
 
-TOKEN = 
+TOKEN = "7676744631:AAF43sUTEOTbNYUqT3rii3rwIYjW_z1VODg"
 bot = TeleBot(TOKEN)
 
 start_kb = types.InlineKeyboardMarkup()
@@ -28,30 +27,31 @@ kb = types.InlineKeyboardMarkup()
 @bot.message_handler(commands=["start"])
 def handle_start(msg: types.Message):
 
-    bot.send_message(
-        msg.chat.id,
-        "Привет! Я единственная, неповторимая, лучшая RPG игра в телеграмме",
-        reply_markup=start_kb,
-    )
-
-    def handle_start(message):
-        session = Session()
+    # Проверяем, есть ли пользователь в базе
+    user = session.query(User).filter_by(user_id=msg.from_user.id).first()
     
-        # Проверяем, есть ли пользователь в базе
-        user = session.query(User).filter_by(user_id=message.from_user.id).first()
-        
-        if not user:
-            # Создаем нового пользователя
-            new_user = User(
-                user_id=message.from_user.id,
-                username=message.from_user.username,
-                race='Не выбран',
+    if not user:
+        bot.send_message(
+            msg.chat.id,
+            "Привет! Я единственная, неповторимая, лучшая RPG игра в телеграмме",
+            reply_markup=start_kb,
             )
-            session.add(new_user)
-            session.commit()
-            bot.reply_to(message, "✅ Вы зарегистрированы в игре!")
-        else:
-            bot.reply_to(message, f"С возвразением, {user.username}!")
+        # Создаем нового пользователя
+        new_user = User(
+            user_id=msg.from_user.id,
+            username=msg.from_user.username,
+            race='Не выбран',
+        )
+        session.add(new_user)
+        session.commit()
+    else:
+        bot.send_message(msg.chat.id, f"С возвращением, {user.race}, {user.nickname}!")
+        kb = types.InlineKeyboardMarkup()
+        kb.add(types.InlineKeyboardButton("Продолжить", callback_data="contenur_adventure"))
+    
+    all_users = session.query(User).all() 
+    for user in all_users:
+        print(f"{user.user_id} ({user.username})")
 
 
 @bot.callback_query_handler(lambda call: call.data == "start_game")
@@ -64,52 +64,55 @@ def handle_start_game(call: types.CallbackQuery):
     )
     bot.register_next_step_handler(call.message, process_name)
 
-
 def process_name(message: types.Message):
     user_name = message.text
+    session.query(User).filter(User.user_id == message.from_user.id).update({'nickname': user_name})
+    session.commit()
 
     kb =types.InlineKeyboardMarkup().add(
-        types.InlineKeyboardButton("люди",callback_data="race:люди"),
-        types.InlineKeyboardButton("эльфы",callback_data="race:эльфы"),
-        types.InlineKeyboardButton("Вервольфы",callback_data="race:Вервольфы"),
-        types.InlineKeyboardButton("Вампиры",callback_data="race:Вампиры"),
-        types.InlineKeyboardButton("Скелеты",callback_data="race:Скелеты"),
+        types.InlineKeyboardButton("Человек",callback_data="race:Человек"),
+        types.InlineKeyboardButton("Эльф",callback_data="race:Эльф"),
+        types.InlineKeyboardButton("Вервольф",callback_data="race:Вервольф"),
+        types.InlineKeyboardButton("Вампир",callback_data="race:Вампир"),
+        types.InlineKeyboardButton("Скелет",callback_data="race:Скелет"),
     )
 
     bot.send_message(
         message.chat.id,
         f"Отличное имя, {user_name}! Теперь выбери свою расу:\n"
-        "1. Люди\n"
-"⚔️ +10% к урону мечом\n"
-"💼 Начинают с дополнительным золотом\n"
-"🎯 Нет особых слабостей\n"
-"\n"
-"2. Эльфы"
-"🌿 +20% к магии\n"
-"🛡️🌿 20% иммунитет к магии\n"
-"⚔️  Слабы к ближнему оружию(на 10% урона больше)\n"
-"\n"
-"3. Вервольфы\n"
-"🐺 +25% к урону в ночное время\n"
-"⚔️ Слабы к серебряному оружию(на 15% урона больше )\n"
-"\n"
-"4. Вампиры\n"
-"🦇 Пьют кровь врагов (+3HP за удар)\n"
-"🌞 Горят на солнце (-2 HP/ход при свете дня)\n" \
-"⚔️ Слабы к серебряному оружию(на 20% урона больше)\n"
-"\n"
-"5. Скелеты\n"
-"💀 Иммунитет к дебафам\n"
-"🛡️➖ получают на 10% больше урона\n",
+        "1. Человек\n"
+        "⚔️ +10% к урону мечом\n"
+        "💼 Начинают с дополнительным золотом\n"
+        "🎯 Нет особых слабостей\n"
+        "\n"
+        "2. Эльф"
+        "🌿 +20% к магии\n"
+        "🛡️🌿 20% иммунитет к магии\n"
+        "⚔️  Слабы к ближнему оружию(на 10% урона больше)\n"
+        "\n"
+        "3. Вервольф\n"
+        "🐺 +25% к урону в ночное время\n"
+        "⚔️ Слабы к серебряному оружию(на 15% урона больше )\n"
+        "\n"
+        "4. Вампир\n"
+        "🦇 Пьют кровь врагов (+3HP за удар)\n"
+        "🌞 Горят на солнце (-2 HP/ход при свете дня)\n" \
+        "⚔️ Слабы к серебряному оружию(на 20% урона больше)\n"
+        "\n"
+        "5. Скелет\n"
+        "💀 Иммунитет к дебафам\n"
+        "🛡️➖ получают на 10% больше урона\n",
         reply_markup=kb,
     )
-
 
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith("race"))
 def handle_callback(callback: types.CallbackQuery):
     _, race = callback.data.split(":")
+
+    session.query(User).filter(User.user_id == callback.from_user.id).update({'race': race})
+    session.commit()
     
-    if race == "люди":
+    if race == "Человек":
         # Создаем клавиатуру для продолжения
         continue_kb = types.InlineKeyboardMarkup()
         continue_kb.add(types.InlineKeyboardButton("Продолжить", callback_data="start_adventure"))
@@ -135,16 +138,17 @@ def handle_callback(callback: types.CallbackQuery):
         bot.delete_message(callback.message.chat.id, callback.message.message_id)
 
 
-    elif race == "эльфы":
+    elif race == "Эльф":
         # Создаем клавиатуру для продолжения
         continue_kb = types.InlineKeyboardMarkup()
         continue_kb.add(types.InlineKeyboardButton("Продолжить", callback_data="start_adventure"))
         
         # Отправляем сообщение с предысторией
         bot.send_message(
-            callback.message.chat.id,    "🌿 *Ну вот теперь ты точно начал игру!*\n\n"
+            callback.message.chat.id,    
+    "🌿 *Ну вот теперь ты точно начал игру!*\n\n"
     "📖 *Предыстория:*\n"
-    "Ты - лесной эльф 🌳, который всю жизнь провёл в древних рощах. "
+    "Ты - лесной Эльф 🌳, который всю жизнь провёл в древних рощах. "
     "Ты хорошо овладел каждым типом магии, но тебе еще сть куда стемиться.\n"
     "🍃 Ты настолько погрузился в гормонию с лесом что мог разговаривать с деревьями...\n\n"
     "🔥 *Чёрный день:*\n"
@@ -153,13 +157,15 @@ def handle_callback(callback: types.CallbackQuery):
     "🚶 *Новый путь:*\n"
     "С пеплом в волосах и болью в сердце 💔 ты покинул это место. "
     "Теперь ты странник без дома, но с твёрдой целью в сердце.\n\n"
-    "✨ *И именно с этого момента начинается твоё настоящее приключение...*"
+    "✨ *И именно с этого момента начинается твоё настоящее приключение...*",
+            parse_mode="Markdown",
+            reply_markup=continue_kb
         )
         # Удаляем предыдущее сообщение с выбором расы
         bot.delete_message(callback.message.chat.id, callback.message.message_id)
 
 
-    elif race == "Вервольфы":
+    elif race == "Вервольф":
         # Создаем клавиатуру для продолжения
         continue_kb = types.InlineKeyboardMarkup()
         continue_kb.add(types.InlineKeyboardButton("Продолжить", callback_data="start_adventure"))
@@ -170,17 +176,18 @@ def handle_callback(callback: types.CallbackQuery):
     "🐺 Ну вот теперь ты точно начал игру!\n\n"
     "📜 Предыстория: днем ты обычный житель города 🏙️, но ночью ты превращаешься в свирепого волка 🌕!\n"
     "😤 Но ты всю ночь вынужден прятаться в огромном замке Дракулы 🏰...\n\n"
-    "💢 Наконец ты устал от этого двуличия 😫, хотел показать людям, что во втором обличии ты безопасен 👐,\n"
+    "💢 Наконец ты устал от этого двуличия, хотел показать людям, что во втором обличии ты безопасен 👐,\n"
     "🔥 но они не захотели тебя слушать — хотели сжечь! 😱\n"
     "🏃 Ты смог убежать... и теперь намерен отомстить! ⚔️\n\n"
     "🚀 Вот так ты и начнешь свое приключение!",
-    parse_mode="Markdown")
+            parse_mode="Markdown",
+            reply_markup=continue_kb)
         # Удаляем предыдущее сообщение с выбором расы
         bot.delete_message(callback.message.chat.id, callback.message.message_id)
 
 
         
-    elif race == "Скелеты":
+    elif race == "Скелет":
         # Создаем клавиатуру для продолжения
         continue_kb = types.InlineKeyboardMarkup()
         continue_kb.add(types.InlineKeyboardButton("Продолжить", callback_data="start_adventure"))
@@ -199,13 +206,14 @@ def handle_callback(callback: types.CallbackQuery):
     "Вечно существовать в жутком полумраке между жизнью и смертью, "
     "где нет ни покоя, ни забвения...\n\n"
     "🌑 *И именно с этого момента начинаются твои поиски...*",
-    parse_mode="Markdown"
-)
+            parse_mode="Markdown",
+            reply_markup=continue_kb
+    )
 
         bot.delete_message(callback.message.chat.id, callback.message.message_id)
 
 
-    elif race == "Вампиры":
+    elif race == "Вампир":
         # Создаем клавиатуру для продолжения
         continue_kb = types.InlineKeyboardMarkup()
         continue_kb.add(types.InlineKeyboardButton("Продолжить", callback_data="start_adventure"))
@@ -225,21 +233,21 @@ def handle_callback(callback: types.CallbackQuery):
             
             # Второй вариант (ваш расширенный)
             '*📜 Путь в Бессмертие:*\n'
-'Будучи обворованным и отчаявшимся, ты поверил \n'
-'незнакомцу в алых одеждах. Его обещания *золота и власти* \n'
-'привели тебя в замок, где:\n'
+            'Будучи обворованным и отчаявшимся, ты поверил \n'
+            'незнакомцу в алых одеждах. Его обещания *золота и власти* \n'
+            'привели тебя в замок, где:\n'
 
-'*👑 В зале с паутиной на троне сидел... Он.*\n'
-'"Хочешь ли ты *вечности*?" — прошелестели его губы. \n'
-'Твой кивок стал роковым. \n'
+            '*👑 В зале с паутиной на троне сидел... Он.*\n'
+            '"Хочешь ли ты *вечности*?" — прошелестели его губы. \n'
+            'Твой кивок стал роковым. \n'
 
-'*🦇 Преображение:*\n'
-'Его клыки впились в шею... Боль сменилась *экстазом*, \n'
-'а наутро — *агонией* первого солнечного луча. \n'
+            '*🦇 Преображение:*\n'
+            'Его клыки впились в шею... Боль сменилась *экстазом*, \n'
+            'а наутро — *агонией* первого солнечного луча. \n'
 
-'*💀 Теперь ты знаешь правду:*\n'
-'Тот незнакомец был *Дракулой*, \n'
-'а твоя "награда" — вечная жажда крови.'
+            '*💀 Теперь ты знаешь правду:*\n'
+            'Тот незнакомец был *Дракулой*, \n'
+            'а твоя "награда" — вечная жажда крови.'
         ]
         
         # Выбираем случайную историю
@@ -255,9 +263,62 @@ def handle_callback(callback: types.CallbackQuery):
         
         # Удаляем предыдущее сообщение
         bot.delete_message(callback.message.chat.id, callback.message.message_id)
+
+
+# делаем кнопку Продолжить   
+@bot.callback_query_handler(func=lambda callback: callback.data.startswith("start_adventure"))
+def handle_callback(callback: types.CallbackQuery):
+
+    user = session.query(User).filter(User.user_id == callback.from_user.id).first()
+    print(f'Раса - {user.race}')
+
+    if user.race == 'Эльф':
+        # Создаем клавиатуру для продолжения
+        continue_kb = types.InlineKeyboardMarkup()
+        continue_kb.add(types.InlineKeyboardButton("Налево", callback_data="continue_adventure_left"))
+        continue_kb.add(types.InlineKeyboardButton("Направо", callback_data="continue_adventure_right"))
+        continue_kb.add(types.InlineKeyboardButton("Прямо", callback_data="continue_adventure_line"))
         
+        selected_story = 'Ты очутился на опушки леса,\n' \
+        'Куда пойдешь ?'
+        # Отправляем сообщение
+        bot.send_message(
+            callback.message.chat.id,
+            selected_story,
+            parse_mode="Markdown",
+            reply_markup=continue_kb
+        )
+        # Удаляем предыдущее сообщение
+        bot.delete_message(callback.message.chat.id, callback.message.message_id)
 
 
+    # делаем обработку Выбора действия   
+@bot.callback_query_handler(func=lambda callback: callback.data.startswith("continue_adventure"))
+def handle_callback(callback: types.CallbackQuery):
+
+    user = session.query(User).filter(User.user_id == callback.from_user.id).first()
+
+    if user.race == 'эльфы':
+        way = callback.data.split('_')[-1]
+        
+        if way == '1':
+            selected_story = 'Это путь первый'
+            continue_kb = types.InlineKeyboardMarkup()
+            continue_kb.add(types.InlineKeyboardButton("Идти дальше", callback_data="continue_adventure_con"))
+        
+            # Отправляем сообщение
+            bot.send_message(
+                callback.message.chat.id,
+                selected_story,
+                parse_mode="Markdown",
+                reply_markup=continue_kb
+            )
+        elif way == '2':
+            pass
+
+        
+    elif user.race == 'Человек':
+        pass
 # @bot.callback_query_handler(func=lambda callback: callback.data.startswith("race"))
 # def handle_callback(callback: types.CallbackQuery):
 #     kb = types.InlineKeyboardMarkup()
