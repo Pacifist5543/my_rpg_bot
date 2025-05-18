@@ -4,15 +4,18 @@ from threading import Thread
 from database import Session
 from database import create_all_table
 from database import User
+from boost import Boost
 import random
 from sqlalchemy import update
 
+BASE_DAMAGE = 15
+BASE_DEFENCE = 5
+BASE_accuracy = 0.5
 
-session = Session()
 create_all_table()
 way = 0
 
-TOKEN = "7676744631:AAETikC7faQbB34Vb_6_UjgTDTF8HRHcx9Q"
+TOKEN = "7676744631:AAE8xq355W1p3yXrHVn-p4jkL6MUzkjcBDQ"
 bot = TeleBot(TOKEN)
 
 start_kb = types.InlineKeyboardMarkup()
@@ -27,7 +30,7 @@ continue_kb.add(
 
 @bot.message_handler(commands=["start"])
 def handle_start(msg: types.Message):
-
+    session = Session()
     # Проверяем, есть ли пользователь в базе
     user = session.query(User).filter_by(user_id=msg.from_user.id).first()
 
@@ -70,6 +73,7 @@ def handle_start_game(call: types.CallbackQuery):
 
 def process_name(message: types.Message):
     user_name = message.text
+    session = Session()
     session.query(User).filter(User.user_id == message.from_user.id).update(
         {"nickname": user_name}
     )
@@ -115,7 +119,7 @@ def process_name(message: types.Message):
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith("race"))
 def handle_callback(callback: types.CallbackQuery):
     _, race = callback.data.split(":")
-
+    session = Session()
     session.query(User).filter(User.user_id == callback.from_user.id).update(
         {"race": race}
     )
@@ -127,6 +131,10 @@ def handle_callback(callback: types.CallbackQuery):
         continue_kb.add(
             types.InlineKeyboardButton("Продолжить", callback_data="start_adventure")
         )
+
+        human_boost = Boost(title='Бонус от рассы "Человек"', damage=0.1, user_id=callback.from_user.id)
+        session.add(human_boost)
+        session.commit()
 
         # Отправляем сообщение с предысторией
         bot.send_message(
@@ -279,6 +287,7 @@ def handle_callback(callback: types.CallbackQuery):
 
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith("start_adventure"))
 def handle_callback(callback: types.CallbackQuery):
+    session = Session()
     user = session.query(User).filter(User.user_id == callback.from_user.id).first()
     
     if user.race == "Эльф":  # Используйте единообразное написание
@@ -297,6 +306,7 @@ def handle_callback(callback: types.CallbackQuery):
 @bot.callback_query_handler(func=lambda callback: callback.data.startswith("continue_adventure"))
 def handle_adventure_choice(callback: types.CallbackQuery):
     *_, direction = callback.data.split("_")
+    session = Session()
     user = session.query(User).filter(User.user_id == callback.from_user.id).first()
 
     if user.race == "Эльф":  # Исправлено на единственное число
@@ -339,11 +349,29 @@ def handle_adventure_choice(callback: types.CallbackQuery):
             "Подняться ?"
             continue_kb.add(types.InlineKeyboardButton("Нет", callback_data="continue_adventure_con")),
             continue_kb.add(types.InlineKeyboardButton("Да", callback_data="continue_adventure_holmup")),
-            *_, direction2 = callback.data.split("_")
+            *_, direction2 = callback.data.split("_"),
+            *_, direction3 = callback.data.split("_")
 
-        if direction2 == "Нет":
-            pass
+        if direction2 == "holmup":
+            story = "Ты поднялся и увидел следующий путь\n" \
+            "прямо...\n" \
+            "направо..."
 
+
+        if direction2 == "con":
+            story = "ты прошел мимо"
+            continue_kb.add(types.InlineKeyboardButton("идти дальше", callback_data="continue_adventure_condontholm")),
+
+
+        if direction3 =="condontholm":
+            story = "Ты на развилке\n" \
+            "Куда пойдешь ?"
+            continue_kb.add(types.InlineKeyboardButton("идти направо", callback_data="continue_razvilkaka_right")),
+            continue_kb.add(types.InlineKeyboardButton("идти налево", callback_data="continue_razvilkaka_left")),
+            *_, direction4 = callback.data.split("_"),
+
+        if direction4 == "right":
+            story = "Ты запнулся о жука и умер"
 
         bot.send_message(
             callback.message.chat.id,

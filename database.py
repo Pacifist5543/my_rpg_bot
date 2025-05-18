@@ -15,9 +15,9 @@
 
 from sqlalchemy import create_engine, Column, Integer, String, Boolean
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, relationship, DeclarativeBase
 
-Base = declarative_base()
+Base: DeclarativeBase = declarative_base()
 
 class User(Base):
     __tablename__ = 'users'
@@ -30,12 +30,14 @@ class User(Base):
     location = Column(String)
     gold = Column(Integer)
 
+    boosts = relationship("Boost", back_populates="user")
+
 
 engine = create_engine('sqlite:///rpg_bot.db')
-Base.metadata.create_all(engine)
 
 Session = sessionmaker(bind=engine)
 
 def create_all_table():
-    pass
+    from boost import Boost
 
+    Base.metadata.create_all(engine)
