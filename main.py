@@ -12,7 +12,7 @@ session = Session()
 create_all_table()
 way = 0
 
-TOKEN = 
+TOKEN = "7676744631:AAETikC7faQbB34Vb_6_UjgTDTF8HRHcx9Q"
 bot = TeleBot(TOKEN)
 
 start_kb = types.InlineKeyboardMarkup()
