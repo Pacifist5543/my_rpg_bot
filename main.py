@@ -7,14 +7,16 @@ from database import User
 from boosts import Boost
 import random
 from sqlalchemy import update
+from models import Base, engine
 
-create_all_table()
+create_all_table
+
 
 BASE_DAMAGE = 15
 BASE_DEFENCE = 5
 BASE_accuracy = 0.5
 
-
+Base.metadata.create_all(engine)
 
 
 way = 0
