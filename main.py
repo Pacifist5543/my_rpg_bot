@@ -21,7 +21,7 @@ Base.metadata.create_all(engine)
 
 way = 0
 
-TOKEN = "7676744631:AAE8xq355W1p3yXrHVn-p4jkL6MUzkjcBDQ"
+TOKEN = ""
 bot = TeleBot(TOKEN)
 
 start_kb = types.InlineKeyboardMarkup()
